@@ -16,6 +16,12 @@
     <div class="card bg-base-100 shadow-sm rounded-2xl border border-slate-200">
         <div class="card-body p-8">
 
+            @if(session('error'))
+            <div class="px-4 py-3 mb-6 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+                <i class="fas fa-exclamation-circle mr-2"></i> {{ session('error') }}
+            </div>
+            @endif
+
             <form action="{{ route('periksa-pasien.store') }}" method="POST">
                 @csrf
                 <input type="hidden" name="id_daftar_poli" value="{{ $id }}">
@@ -28,11 +34,15 @@
                     <select id="select-obat" class="select select-bordered w-full rounded-lg border-2 px-4">
                         <option value="">-- Pilih Obat --</option>
                         @foreach ($obats as $obat)
-                            <option value="{{ $obat->id }}"
-                                data-nama="{{ $obat->nama_obat }}"
-                                data-harga="{{ $obat->harga }}">
-                                {{ $obat->nama_obat }} - Rp{{ number_format($obat->harga) }}
-                            </option>
+                        <option value="{{ $obat->id }}"
+                            data-nama="{{ $obat->nama_obat }}"
+                            data-harga="{{ $obat->harga }}">
+                            {{ $obat->stok == 0 ? 'disabled' : '' }}>
+                            {{ $obat->nama_obat }} - Rp{{ number_format($obat->harga) }}
+                            (Stok: {{ $obat->stok }})
+                            {{ $obat->stok <= 2 && $obat->stok > 0 ? '[Menipis]' : '' }}
+                            {{ $obat->stok == 0 ? '[Habis]' : '' }}
+                        </option>
                         @endforeach
                     </select>
                 </div>
@@ -103,7 +113,11 @@
 
             if (!id || daftarObat.some(o => o.id == id)) return;
 
-            daftarObat.push({ id, nama, harga });
+            daftarObat.push({
+                id,
+                nama,
+                harga
+            });
             renderObat();
             selectObat.selectedIndex = 0;
         });

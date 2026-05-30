@@ -1,0 +1,260 @@
+
+<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+<head>
+    <meta charset='utf-8'>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; padding: 20px; }
+    </style>
+</head>
+<body>
+<h1 style="color: #2d4499; font-size: 24px; margin-bottom: 20px;">Panduan Implementasi Manual: Stok Obat</h1>
+
+<p>Ikuti langkah-langkah di bawah ini untuk menambahkan fitur stok obat ke dalam proyek Anda. Salin dan tempel (copy-paste) kode yang diberikan ke file yang sesuai.</p>
+
+<hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+
+<h3 style="color: #333; font-size: 16px; margin-top: 20px; border-bottom: 1px solid #ddd; padding-bottom: 5px;">1. Buat dan Jalankan Migrasi Database</h3>
+<p>Buka terminal/CMD di folder proyek Anda, lalu jalankan perintah ini:</p>
+<pre style="background-color: #f4f4f4; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-family: Consolas, monospace; font-size: 13px; white-space: pre-wrap;">php artisan make:migration add_stok_to_obat_table --table=obat</pre>
+
+<p>Buka file migrasi yang baru saja dibuat di dalam folder <code style="background-color: #f4f4f4; padding: 2px 4px; border-radius: 3px; font-family: Consolas, monospace; font-size: 13px;">database/migrations/</code> dan ubah isinya menjadi:</p>
+
+<pre style="background-color: #f4f4f4; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-family: Consolas, monospace; font-size: 13px; white-space: pre-wrap;">&lt;?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table(&#x27;obat&#x27;, function (Blueprint $table) {
+            $table-&gt;integer(&#x27;stok&#x27;)-&gt;default(0)-&gt;after(&#x27;harga&#x27;);
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table(&#x27;obat&#x27;, function (Blueprint $table) {
+            $table-&gt;dropColumn(&#x27;stok&#x27;);
+        });
+    }
+<p>};</pre></p>
+<p>Simpan file, lalu jalankan migrasi di terminal:</p>
+<pre style="background-color: #f4f4f4; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-family: Consolas, monospace; font-size: 13px; white-space: pre-wrap;">php artisan migrate</pre>
+
+<hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+
+<h3 style="color: #333; font-size: 16px; margin-top: 20px; border-bottom: 1px solid #ddd; padding-bottom: 5px;">2. Update Model Obat</h3>
+<p>Buka <b>app/Models/Obat.php</b>. Tambahkan <code style="background-color: #f4f4f4; padding: 2px 4px; border-radius: 3px; font-family: Consolas, monospace; font-size: 13px;">&#x27;stok&#x27;</code> ke dalam <code style="background-color: #f4f4f4; padding: 2px 4px; border-radius: 3px; font-family: Consolas, monospace; font-size: 13px;">$fillable</code>.</p>
+
+<pre style="background-color: #f4f4f4; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-family: Consolas, monospace; font-size: 13px; white-space: pre-wrap;">    protected $fillable = [
+        &#x27;nama_obat&#x27;,
+        &#x27;kemasan&#x27;,
+        &#x27;harga&#x27;,
+        &#x27;stok&#x27;, // Tambahkan baris ini
+<p>    ];</pre></p>
+
+<hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+
+<h3 style="color: #333; font-size: 16px; margin-top: 20px; border-bottom: 1px solid #ddd; padding-bottom: 5px;">3. Update Controller Admin</h3>
+<p>Buka <b>app/Http/Controllers/Admin/ObatController.php</b>.</p>
+
+<p>Pada method <b><code style="background-color: #f4f4f4; padding: 2px 4px; border-radius: 3px; font-family: Consolas, monospace; font-size: 13px;">store</code></b>, ubah bagian validasi dan create:</p>
+<pre style="background-color: #f4f4f4; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-family: Consolas, monospace; font-size: 13px; white-space: pre-wrap;">    public function store(Request $request)
+    {
+        $request-&gt;validate([
+            &#x27;nama_obat&#x27; =&gt; &#x27;required|string&#x27;,
+            &#x27;kemasan&#x27; =&gt; &#x27;required|string&#x27;,
+            &#x27;harga&#x27; =&gt; &#x27;required|integer&#x27;,
+            &#x27;stok&#x27; =&gt; &#x27;required|integer|min:0&#x27;, // Validasi stok
+        ]);
+
+        Obat::create([
+            &#x27;nama_obat&#x27; =&gt; $request-&gt;nama_obat,
+            &#x27;kemasan&#x27; =&gt; $request-&gt;kemasan,
+            &#x27;harga&#x27; =&gt; $request-&gt;harga,
+            &#x27;stok&#x27; =&gt; $request-&gt;stok // Simpan stok
+        ]);
+
+        return redirect()-&gt;route(&#x27;obat.index&#x27;)
+            -&gt;with(&#x27;message&#x27;, &#x27;Data Obat Berhasil dibuat&#x27;)
+            -&gt;with(&#x27;type&#x27;, &#x27;success&#x27;);
+<p>    }</pre></p>
+
+<p>Pada method <b><code style="background-color: #f4f4f4; padding: 2px 4px; border-radius: 3px; font-family: Consolas, monospace; font-size: 13px;">update</code></b>, ubah bagian validasi dan update:</p>
+<pre style="background-color: #f4f4f4; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-family: Consolas, monospace; font-size: 13px; white-space: pre-wrap;">    public function update(Request $request, string $id)
+    {
+        $request-&gt;validate([
+            &#x27;nama_obat&#x27; =&gt; &#x27;required|string&#x27;,
+            &#x27;kemasan&#x27; =&gt; &#x27;nullable|string&#x27;,
+            &#x27;harga&#x27; =&gt; &#x27;required|integer&#x27;,
+            &#x27;stok&#x27; =&gt; &#x27;required|integer|min:0&#x27;, // Validasi stok
+        ]);
+
+        $obat = Obat::findOrFail($id);
+        $obat-&gt;update([
+            &#x27;nama_obat&#x27; =&gt; $request-&gt;nama_obat,
+            &#x27;kemasan&#x27; =&gt; $request-&gt;kemasan,
+            &#x27;harga&#x27; =&gt; $request-&gt;harga,
+            &#x27;stok&#x27; =&gt; $request-&gt;stok // Update stok
+        ]);
+
+        return redirect()-&gt;route(&#x27;obat.index&#x27;)
+            -&gt;with(&#x27;message&#x27;, &#x27;Data Obat berhasil di edit&#x27;)
+            -&gt;with(&#x27;type&#x27;, &#x27;success&#x27;);
+<p>    }</pre></p>
+
+<hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+
+<h3 style="color: #333; font-size: 16px; margin-top: 20px; border-bottom: 1px solid #ddd; padding-bottom: 5px;">4. Update View Admin (Tambah & Edit)</h3>
+
+<p>Buka <b>resources/views/admin/obat/create.blade.php</b>.</p>
+<p>Tambahkan kode form input ini <b>di bawah bagian input Harga</b>, tepat sebelum tombol <i>Simpan</i>:</p>
+<pre style="background-color: #f4f4f4; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-family: Consolas, monospace; font-size: 13px; white-space: pre-wrap;">                {{-- Stok --}}
+                &lt;div class=&quot;mb-8&quot;&gt;
+                    &lt;label class=&quot;block text-sm font-semibold text-slate-700 mb-1&quot;&gt;
+                        Stok Awal &lt;span class=&quot;text-red-500&quot;&gt;*&lt;/span&gt;
+                    &lt;/label&gt;
+                    &lt;input type=&quot;number&quot; name=&quot;stok&quot; value=&quot;{{ old(&#x27;stok&#x27;, 0) }}&quot; placeholder=&quot;0&quot; min=&quot;0&quot; step=&quot;1&quot;
+                        class=&quot;w-full px-4 py-2 border-2 rounded-lg p-2
+                                  focus:border-primary focus:outline-none
+                                  @error(&#x27;stok&#x27;) border-red-500 @enderror&quot; required&gt;
+                    @error(&#x27;stok&#x27;)
+                    &lt;p class=&quot;text-xs text-red-500 mt-1&quot;&gt;{{ $message }}&lt;/p&gt;
+                    @enderror
+<p>                &lt;/div&gt;</pre></p>
+
+<p>Buka <b>resources/views/admin/obat/edit.blade.php</b>.</p>
+<p>Tambahkan form input stok ini <b>di bawah bagian input Harga</b>, tepat sebelum tombol <i>Update</i>:</p>
+<pre style="background-color: #f4f4f4; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-family: Consolas, monospace; font-size: 13px; white-space: pre-wrap;">                {{-- Stok --}}
+                &lt;div class=&quot;mb-8&quot;&gt;
+                    &lt;label class=&quot;block text-sm font-semibold text-slate-700 mb-1&quot;&gt;
+                        Stok &lt;span class=&quot;text-red-500&quot;&gt;*&lt;/span&gt;
+                    &lt;/label&gt;
+                    &lt;input type=&quot;number&quot; name=&quot;stok&quot; value=&quot;{{ old(&#x27;stok&#x27;, $obat-&gt;stok) }}&quot; placeholder=&quot;0&quot; min=&quot;0&quot; step=&quot;1&quot;
+                        class=&quot;w-full px-4 py-2 border-2 rounded-lg p-2
+                                  focus:border-primary focus:outline-none
+                                  @error(&#x27;stok&#x27;) border-red-500 @enderror&quot; required&gt;
+                    @error(&#x27;stok&#x27;)
+                    &lt;p class=&quot;text-xs text-red-500 mt-1&quot;&gt;{{ $message }}&lt;/p&gt;
+                    @enderror
+<p>                &lt;/div&gt;</pre></p>
+
+<hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+
+<h3 style="color: #333; font-size: 16px; margin-top: 20px; border-bottom: 1px solid #ddd; padding-bottom: 5px;">5. Update View Admin (Tabel Index)</h3>
+
+<p>Buka <b>resources/views/admin/obat/index.blade.php</b>.</p>
+<p>Pada bagian <code style="background-color: #f4f4f4; padding: 2px 4px; border-radius: 3px; font-family: Consolas, monospace; font-size: 13px;">&lt;thead &gt;...&lt;/thead&gt;</code>, tambahkan judul kolom Stok sebelum kolom Aksi:</p>
+<pre style="background-color: #f4f4f4; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-family: Consolas, monospace; font-size: 13px; white-space: pre-wrap;">&lt;th class=&quot;px-6 py-4&quot;&gt;Harga&lt;/th&gt;
+&lt;th class=&quot;px-6 py-4&quot;&gt;Stok&lt;/th&gt; &lt;!-- TAMBAHKAN INI --&gt;
+<p>&lt;th class=&quot;px-6 py-4 text-right&quot;&gt;Aksi&lt;/th&gt;</pre></p>
+
+<p>Pada bagian <code style="background-color: #f4f4f4; padding: 2px 4px; border-radius: 3px; font-family: Consolas, monospace; font-size: 13px;">&lt;tbody&gt;...&lt;/tbody&gt;</code>, tambahkan data kolom Stok dan indikator sebelum <code style="background-color: #f4f4f4; padding: 2px 4px; border-radius: 3px; font-family: Consolas, monospace; font-size: 13px;">&lt;td&gt;</code> aksi:</p>
+<pre style="background-color: #f4f4f4; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-family: Consolas, monospace; font-size: 13px; white-space: pre-wrap;">&lt;td class=&quot;px-6 py-4 font-semibold text-slate-800&quot;&gt;
+    Rp {{ number_format($obat-&gt;harga, 0, &#x27;,&#x27;, &#x27;.&#x27;) }}
+&lt;/td&gt;
+
+&lt;!-- TAMBAHKAN BLOK TD INI --&gt;
+&lt;td class=&quot;px-6 py-4 font-semibold text-slate-800&quot;&gt;
+    {{ $obat-&gt;stok }}
+    @if($obat-&gt;stok &lt;= 2 &amp;&amp; $obat-&gt;stok &gt; 0)
+        &lt;span class=&quot;text-xs text-orange-500 ml-1&quot;&gt;(Menipis)&lt;/span&gt;
+    @elseif($obat-&gt;stok == 0)
+        &lt;span class=&quot;text-xs text-red-500 ml-1&quot;&gt;(Habis)&lt;/span&gt;
+    @endif
+&lt;/td&gt;
+&lt;!-- SAMPAI SINI --&gt;
+
+<p>&lt;td class=&quot;px-6 py-4 text-right&quot;&gt;</pre></p>
+
+<hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+
+<h3 style="color: #333; font-size: 16px; margin-top: 20px; border-bottom: 1px solid #ddd; padding-bottom: 5px;">6. Update Controller Dokter (Pengurangan Stok & Validasi)</h3>
+
+<p>Buka <b>app/Http/Controllers/Dokter/PeriksaPasienController.php</b>.</p>
+<p>Ganti <b>keseluruhan method <code style="background-color: #f4f4f4; padding: 2px 4px; border-radius: 3px; font-family: Consolas, monospace; font-size: 13px;">store</code></b> menjadi seperti ini:</p>
+
+<pre style="background-color: #f4f4f4; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-family: Consolas, monospace; font-size: 13px; white-space: pre-wrap;">    public function store(Request $request)
+    {
+        $request-&gt;validate([
+            &#x27;obat_json&#x27; =&gt; &#x27;required&#x27;,
+            &#x27;catatan&#x27; =&gt; &#x27;nullable|string&#x27;,
+            &#x27;biaya_periksa&#x27; =&gt; &#x27;required|integer&#x27;,
+        ]);
+
+        $obatIds = json_decode($request-&gt;obat_json, true);
+
+        // 1. Validasi Stok Obat sebelum menyimpan data apa pun
+        if ($obatIds &amp;&amp; count($obatIds) &gt; 0) {
+            foreach ($obatIds as $idObat) {
+                $obat = Obat::find($idObat);
+                if (!$obat || $obat-&gt;stok &lt; 1) {
+                    return redirect()-&gt;back()-&gt;with(&#x27;error&#x27;, &#x27;Gagal menyimpan: Stok obat &#x27; . ($obat ? $obat-&gt;nama_obat : &#x27;&#x27;) . &#x27; sedang kosong/habis.&#x27;);
+                }
+            }
+        }
+
+        // 2. Buat data Periksa
+        $periksa = Periksa::create([
+            &#x27;id_daftar_poli&#x27; =&gt; $request-&gt;id_daftar_poli,
+            &#x27;tgl_periksa&#x27; =&gt; now(),
+            &#x27;catatan&#x27; =&gt; $request-&gt;catatan,
+            &#x27;biaya_periksa&#x27; =&gt; $request-&gt;biaya_periksa + 150000,
+        ]);
+
+        // 3. Simpan Detail Periksa sekaligus kurangi stok
+        if ($obatIds &amp;&amp; count($obatIds) &gt; 0) {
+            foreach ($obatIds as $idObat) {
+                DetailPeriksa::create([
+                    &#x27;id_periksa&#x27; =&gt; $periksa-&gt;id,
+                    &#x27;id_obat&#x27; =&gt; $idObat,
+                ]);
+
+                // Kurangi Stok Obat
+                $obat = Obat::find($idObat);
+                $obat-&gt;stok -= 1;
+                $obat-&gt;save();
+            }
+        }
+
+        return redirect()-&gt;route(&#x27;periksa-pasien.index&#x27;)-&gt;with(&#x27;success&#x27;, &#x27;Data periksa berhasil disimpan.&#x27;);
+<p>    }</pre></p>
+
+<hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+
+<h3 style="color: #333; font-size: 16px; margin-top: 20px; border-bottom: 1px solid #ddd; padding-bottom: 5px;">7. Update View Dokter (Error Alert & Indikator Stok)</h3>
+
+<p>Buka <b>resources/views/dokter/periksa-pasien/create.blade.php</b>.</p>
+
+<p>Tambahkan kode alert ini di bawah baris <code style="background-color: #f4f4f4; padding: 2px 4px; border-radius: 3px; font-family: Consolas, monospace; font-size: 13px;">&lt;div class=&quot;card-body p-8&quot;&gt;</code> (kira-kira sebelum <code style="background-color: #f4f4f4; padding: 2px 4px; border-radius: 3px; font-family: Consolas, monospace; font-size: 13px;">&lt;form ...&gt;</code>):</p>
+<pre style="background-color: #f4f4f4; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-family: Consolas, monospace; font-size: 13px; white-space: pre-wrap;">            @if(session(&#x27;error&#x27;))
+            &lt;div class=&quot;px-4 py-3 mb-6 bg-red-100 border border-red-400 text-red-700 rounded-lg&quot;&gt;
+                &lt;i class=&quot;fas fa-exclamation-circle mr-2&quot;&gt;&lt;/i&gt; {{ session(&#x27;error&#x27;) }}
+            &lt;/div&gt;
+<p>            @endif</pre></p>
+
+<p>Ubah bagian <code style="background-color: #f4f4f4; padding: 2px 4px; border-radius: 3px; font-family: Consolas, monospace; font-size: 13px;">&lt;select id=&quot;select-obat&quot; ...&gt;</code> loop <code style="background-color: #f4f4f4; padding: 2px 4px; border-radius: 3px; font-family: Consolas, monospace; font-size: 13px;">@foreach ($obats as $obat)</code> menjadi seperti ini:</p>
+<pre style="background-color: #f4f4f4; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-family: Consolas, monospace; font-size: 13px; white-space: pre-wrap;">                    &lt;select id=&quot;select-obat&quot; class=&quot;select select-bordered w-full rounded-lg border-2 px-4&quot;&gt;
+                        &lt;option value=&quot;&quot;&gt;-- Pilih Obat --&lt;/option&gt;
+                        @foreach ($obats as $obat)
+                            &lt;option value=&quot;{{ $obat-&gt;id }}&quot;
+                                data-nama=&quot;{{ $obat-&gt;nama_obat }}&quot;
+                                data-harga=&quot;{{ $obat-&gt;harga }}&quot;
+                                {{ $obat-&gt;stok == 0 ? &#x27;disabled&#x27; : &#x27;&#x27; }}&gt;
+                                
+                                {{ $obat-&gt;nama_obat }} - Rp{{ number_format($obat-&gt;harga) }} 
+                                (Stok: {{ $obat-&gt;stok }})
+                                
+                                {{ $obat-&gt;stok &lt;= 2 &amp;&amp; $obat-&gt;stok &gt; 0 ? &#x27;[Menipis]&#x27; : &#x27;&#x27; }}
+                                {{ $obat-&gt;stok == 0 ? &#x27;[Habis]&#x27; : &#x27;&#x27; }}
+                            &lt;/option&gt;
+                        @endforeach
+<p>                    &lt;/select&gt;</pre></p>
+
+<div style="background-color: #e6ffed; border-left: 4px solid #28a745; padding: 10px; margin: 10px 0;"><b>TIP:</b> Selesai! Setelah memasukkan semua kode tersebut, pastikan untuk menjalankan <code style="background-color: #f4f4f4; padding: 2px 4px; border-radius: 3px; font-family: Consolas, monospace; font-size: 13px;">php artisan migrate</code> di terminal untuk menambahkan field ke database sebelum Anda menguji aplikasinya.</div>
+
+</body>
+</html>

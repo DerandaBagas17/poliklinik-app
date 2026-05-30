@@ -28,6 +28,7 @@
                             <th class="px-6 py-4">Nama Obat</th>
                             <th class="px-6 py-4">Kemasan</th>
                             <th class="px-6 py-4">Harga</th>
+                            <th class="px-6 py-4">Stok</th>
                             <th class="px-6 py-4 text-right">Aksi</th>
                         </tr>
                     </thead>
@@ -50,6 +51,15 @@
 
                             <td class="px-6 py-4 font-semibold text-slate-800">
                                 Rp {{ number_format($obat->harga, 0, ',', '.') }}
+                            </td>
+
+                            <td class="px-6 py-4 font-semibold text-slate-800">
+                                {{ $obat->stok }}
+                                @if($obat->stok <= 2 && $obat->stok > 0)
+                                    <span class="text-xs text-orange-500 ml-1">(Menipis)</span>
+                                    @elseif($obat->stok == 0)
+                                    <span class="text-xs text-red-500 ml-1">(Habis)</span>
+                                    @endif
                             </td>
 
                             <td class="px-6 py-4 text-right">
